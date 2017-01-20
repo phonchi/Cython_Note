@@ -14,7 +14,7 @@ Two common usecases:
 * Function Call Overhead: Python call slower than C. Moreover, Cython generates highly optimized C code that bypasses some of the slower Python/C API calls. Thus it usually performs better than handwritten C extension.
 * Looping
 * Math Operations:  Python is dynamically typed and cannot make any type-based optimizations.
-* Stack Versus Heap Allocation: At the C level, a dynamic Python object is entirely heap allocated. Ex: Python `float `objects are **immutable**, operations using Python floats involve the creation and destruction of heap-allocated objects. The Cython version can declare all variables to be stack-allocated C doubles. As a rule, stack allocation is much faster than heap allocation. 
+* Stack Versus Heap Allocation: At the C level, a dynamic Python object is entirely heap allocated. Ex: Python `float`objects are **immutable**, operations using Python floats involve the creation and destruction of heap-allocated objects. The Cython version can declare all variables to be stack-allocated C doubles. As a rule, stack allocation is much faster than heap allocation. 
 
 ## Wrapping
 
@@ -28,14 +28,10 @@ def fib(n):
     return cfib(n)
 ```
 
-* The interface for our function is in` cfib.h. `We provide the `cfib.h` header filename in the `cdef extern` from statement, and we declare the `cfib` function’s signature in the block’s indented body. After the cdef extern block, we define a `fib` Python wrapper function, which calls `cfib` and returns its result.
+* The interface for our function is in`cfib.h.`We provide the `cfib.h` header filename in the `cdef extern` from statement, and we declare the `cfib` function’s signature in the block’s indented body. After the cdef extern block, we define a `fib` Python wrapper function, which calls `cfib` and returns its result.
 * A hand-written wrapper would require several dozen lines of C code, and detailed knowledge of the Python/C API. 
 * The type conversion code can be generated automatically for simple types. In future chapters, we will see how Cython helps us wrap arbitrarily **complex data structures, classes, functions, and methods. **
 * **Sage** uses Cython extensively to speed up Python-centric algorithms.
-
-
-
-
 
 
 
