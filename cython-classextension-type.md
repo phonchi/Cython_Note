@@ -12,7 +12,7 @@
 
 * A type is responsible for creating and destroying its objects, initializing them, and up‐ dating their values when methods are called on the object. **Python allows us to create new types, in Python code, with the **`class`** statement**.
 
-* We can also create our own types at the C level directly using the Python/C API; these
+* We can also create our own types at the C level directly using the Python/C API; these  
    are known as **extension types**. The extension type has fast C-level access to the type’s methods and the instance’s data.  **Cython makes creating and using extension types as straightforward as working with pure-Python classes**. Extension types are created in Cython with the `cdef class` statement.
 
 ## Extension Types in Cython
@@ -108,7 +108,7 @@ cdef add_momentums_typed_c(list particles):
 
 * The basic understanding about `def, cdef`, and `cpdef` functions also apply to extension type methods. 
 * The last version has the best performance: approximately 4.6 microseconds, another 40 percent boost over the add\_momentums\_typed version. The downside is that `get_momentum_c` is not callable from Python code, only Cython. 
-* Because a` cdef` method is not accessible or overrideable from Python, it does not have to cross the language boundary, so it has less call overhead than a `cpdef `equivalent. **This is a relevant concern only for small functions where call overhead is non-negligible.**
+* Because a`cdef` method is not accessible or overrideable from Python, it does not have to cross the language boundary, so it has less call overhead than a `cpdef`equivalent. **This is a relevant concern only for small functions where call overhead is non-negligible.**
 
 ## Inheritance and Subclassing
 
@@ -120,7 +120,7 @@ cdef class CParticle(Particle):
         self.momentum = self.mass * self.velocity
     cpdef double get_momentum(self):
         return self.momentum
-        
+
 class PyParticle(Particle):
     def __init__(self, m, p, v):
         super(PyParticle, self).__init__(m, p, v)
@@ -129,7 +129,7 @@ class PyParticle(Particle):
 ```
 
 * An extension type can subclass **a single base type**, and that base type must itself be a type implemented in C—either a built-in type or another extension type.
-* We can also subclass `Particle` in pure Python as well. The `PyParticle` class cannot access **any private C-level attributes or `cdef` methods**. It can override `def` and `cpdef` methods defined on `Particle.`
+* We can also subclass `Particle` in pure Python as well. The `PyParticle` class cannot access **any private C-level attributes or **`cdef`** methods**. It can override `def` and `cpdef` methods defined on `Particle.`
 
 ## Casting and Subclasses
 
@@ -144,10 +144,6 @@ print (<Particle?>p).velocity
 
 * When working with a dynamically typed object, Cython cannot access any C-level data or methods on it. **All attribute lookup must be done via the Python/C API**, which is slow. If we know the dynamic variable is or may possibly be an instance of a built-in type or an extension type, then it is worth** casting to the static type**. Further, Cython can also access Python-level attributes and `cpdef` methods directly without going through the Python/C API. 
 * Two ways to perform this casting: either by creating a statically typed variable of the desired type and assigning the dynamic variable to it, or by using Cython’s casting operator.
-
-
-
-
 
 
 
