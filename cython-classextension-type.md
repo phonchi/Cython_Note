@@ -131,7 +131,7 @@ class PyParticle(Particle):
 * An extension type can subclass **a single base type**, and that base type must itself be a type implemented in C—either a built-in type or another extension type.
 * We can also subclass `Particle` in pure Python as well. The `PyParticle` class cannot access **any private C-level attributes or **`cdef`** methods**. It can override `def` and `cpdef` methods defined on `Particle.`
 
-## Casting and Subclasses
+### Casting and Subclasses
 
 ```py
 cdef Particle static_p = p
@@ -144,6 +144,118 @@ print (<Particle?>p).velocity
 
 * When working with a dynamically typed object, Cython cannot access any C-level data or methods on it. **All attribute lookup must be done via the Python/C API**, which is slow. If we know the dynamic variable is or may possibly be an instance of a built-in type or an extension type, then it is worth** casting to the static type**. Further, Cython can also access Python-level attributes and `cpdef` methods directly without going through the Python/C API. 
 * Two ways to perform this casting: either by creating a statically typed variable of the desired type and assigning the dynamic variable to it, or by using Cython’s casting operator.
+* The casting method removes the need to create a temporary variable. The cast is enclosed in parentheses due to Cython’s precedence rules. Note checked   cast calls into the Python/C API will incurs runtime overhead.
+
+### Extension Type Objects and None
+
+```py
+def dispatch(Particle p not None):
+    print p.get_momentum()
+    print p.velocity
+
+# cython: nonecheck=True
+$ cython --directive nonecheck=True source.pyx
+```
+
+* Cython treats `None` specially—even though it is not an instance of Particle, Cython allows it to be passed in as if it were. This is analogous to the NULL pointer in C. However, `None` object essentially has no C interface, so trying to call a method on it or access an attribute is not valid. To make these operations safe, we could check if it is `None` first.
+* Cython also provides a  nonecheck compiler directive.
+
+## Extension Type Properties in Cython
+
+```py
+class Particle(object):
+    # ...
+    def _get_momentum(self):
+        return self.mass * self.velocity
+    momentum = property(_get_momentum)
+
+cdef class Particle:
+    """Simple Particle extension type."""
+    cdef double mass, position, velocity
+    # ...
+    property momentum:
+        """The momentum Particle property."""
+        def __get__(self):
+            """momentum's getter"""
+            return self.mass * self.velocity
+        def __set__(self, m):
+            """momentum's setter"""
+            self.velocity = m / self.mass
+```
+
+* Python` properties` are handy and very powerful, allowing** precise control over attribute access and on-the-fly computation**. Python programmer would berate using a getter method like previous; the right way to do it is to e**ither expose momentum directly or make a property instead.**
+* Cython has different syntax for extension type properties, but it achieves the same end
+
+## Special Methods Are Even More Special
+
+```py
+cdef class E:
+    """Extension type that supports addition."""
+    cdef int data
+        def __init__(self, d):
+        self.data = d
+    def __add__(x, y):
+        # Regular __add__ behavior
+        if isinstance(x, E):
+            if isinstance(y, int):
+                return (<E>x).data + y
+        # __radd__ behavior
+        elif isinstance(y, E):
+            if isinstance(x, int):
+                return (<E>y).data + x
+        else:
+            return NotImplemented
+
+from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_GE, Py_GT, Py_NE
+cdef class R:
+    """Extension type that supports rich comparisons."""
+    cdef double data
+    def __init__(self, d):
+        self.data = d
+    def __richcmp__(x, y, int op):
+        cdef:
+            R r
+            double data
+        # Make r always refer to the R instance.
+        r, y = (x, y) if isinstance(x, R) else (y, x)
+        data = r.data
+        if op == Py_LT:
+            return data < y
+        elif op == Py_LE:
+            return data <= y
+        elif op == Py_EQ:
+            return data == y
+        elif op == Py_NE:
+            return data != y
+        elif op == Py_GT:
+            return data > y
+        elif op == Py_GE:
+            return data >= y
+        else:
+           assert False
+ 
+ cdef class I:
+    cdef:
+        list data
+        int i
+    def __init__(self):
+        self.data = range(100)
+        self.i = 0
+    def __iter__(self):
+        return self
+    def __next__(self):
+        if self.i >= len(self.data):
+            raise StopIteration()
+        ret = self.data[self.i]
+        self.i += 1
+        return ret
+```
+
+* When providing support for operator overloading with a Cython extension type, we have to define a special method; that is, a method of a specific name with leading and trailing double underscores.
+* To support the in-place `+` operator for a pure-Python class C, we define an `__add__(self, other)` special method. The operation `c + d` is transformed into` C.__add__(c, d)` when c is an instance of the C class. If C does not know how to add itself to the other argument, then it returns NotImplemented. In this case, the Python interpreter then calls `type(d).__radd__(d, c) `to give d’s class a chance to add itself to a C instance.
+* For extension types, the situation is different. Extension types do not support `__radd__`; instead, they \(effectively\) overload `__add__ `to do the job of both the regular` __add__ `and `__radd__` in one special method.
+* Cython extension types do not support the individual comparison special methods like` __eq__`, `__lt__`, and `__le__`. Instead, Cython provides a single \(some would say cryptic\) method,` __richcmp__(x, y, op).`
+* To make an extension type iterable, we define` __iter__` on it, just as in regular Python. To make an extension type an iterator, we define a `__next__` special method on it, as we would in Python 3. This is different from a pure-Python object, where we would define a next method instead. Cython will expose `__next__` as next to Python.
 
 
 
